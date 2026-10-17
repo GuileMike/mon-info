@@ -16,7 +16,7 @@
 import React, { useState, useEffect } from "react";
 
 // ⬇️ REMPLACEZ par l'URL de votre service Render
-const API = "https://mon-info-backend.onrender.com";
+const API = "https://mon-info-1.onrender.com";
 
 export default function App() {
   const [sujets, setSujets] = useState(null);
