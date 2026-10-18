@@ -131,17 +131,24 @@ interface Sujet {
   categorie: string;         // classification simple par mots-clés
   articles: Article[];
   desaccord: boolean;        // médias de biais opposés présents ?
-}
 
 function classifier(titre: string): string {
-  const t = titre.toLowerCase();
-  if (/ariane|fusée|spatial|nasa|cnes|science|recherche|santé|vaccin|climat/.test(t)) return "Science";
-  if (/histoire|archéo|découverte|gaulois|siècle|musée|napoléon/.test(t)) return "Histoire";
-  if (/retraites|loi|gouvernement|président|élection|parlement|ministre|macron/.test(t)) return "Politique";
-  if (/ue|europe|bruxelles|ukraine|israël|usa|états-unis|chine|onu|otan/.test(t)) return "International";
-  if (/ia|intelligence artificielle|tech|numérique|apple|google|start-up/.test(t)) return "Tech";
-  if (/foot|match|champions|ligue|psg|ol|tour de france|jeux olympiques/.test(t)) return "Sport";
-  if (/canicule|tempête|inondation|pauvreté|société|école|grève|manifestation/.test(t)) return "Société";
+  // Neutralise accents et casse pour des regex fiables
+  const t = titre
+    .toLowerCase()
+    .normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+}
+  
+  // Manifestations / faits de société AVANT International
+  if (/manifest|pillage|emeute|interpellat|greve|cgn|crs|police|lyon|marseille|limoges|bordeaux|nice|paris|violence/.test(t)) return "Société";
+  if (/canicule|tempete|inondation|pauvrete|ecole|logement|sante|hopital|pension|retraite/.test(t)) return "Société";
+  if (/retraites|loi|gouvernement|parlement|ministre|assemblee|senat|macron|president de la republique|conseil des ministres/.test(t)) return "Politique";
+  if (/\bue\b|union europeenne|europe|bruxelles|strasbourg/.test(t)) return "International";
+  if (/ukraine|russie|israel|palestin|usa|etats-unis|washington|chine|onu|otan|trump|poutine|zelensky|vance/.test(t)) return "International";
+  if (/\bia\b|intelligence artificielle|tech|numerique|apple|google|iphone|cyber|donnees/.test(t)) return "Tech";
+  if (/spatial|fusée|ariane|nasa|cnes|astronaute|satellite|planete|mars|climat|biodiversite|vaccin|virus|cancer|genetiqu/.test(t)) return "Science";
+  if (/histoire|archeo|gaulois|siecle|musee|napoleon|empire|medieval/.test(t)) return "Histoire";
+  if (/foot|match|champions|ligue|psg\b|om\b|equipe de france|tour de france|jeux olympiques|tennis|rugby/.test(t)) return "Sport";
   return "Général";
 }
 
