@@ -131,7 +131,7 @@ interface Sujet {
   categorie: string;         // classification simple par mots-clés
   articles: Article[];
   desaccord: boolean;        // médias de biais opposés présents ?
-
+}
   
 function classifier(titre: string): string {
   // Neutralise accents et casse pour des regex fiables
