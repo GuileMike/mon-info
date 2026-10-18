@@ -132,23 +132,22 @@ interface Sujet {
   articles: Article[];
   desaccord: boolean;        // médias de biais opposés présents ?
 
+  
 function classifier(titre: string): string {
   // Neutralise accents et casse pour des regex fiables
   const t = titre
     .toLowerCase()
     .normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-}
-  
-  // Manifestations / faits de société AVANT International
-  if (/manifest|pillage|emeute|interpellat|greve|cgn|crs|police|lyon|marseille|limoges|bordeaux|nice|paris|violence/.test(t)) return "Société";
+
+  if (/manifest|pillage|emeute|interpellat|greve|crs|police|lyon|marseille|limoges|bordeaux|nice|paris|violence/.test(t)) return "Société";
   if (/canicule|tempete|inondation|pauvrete|ecole|logement|sante|hopital|pension|retraite/.test(t)) return "Société";
-  if (/retraites|loi|gouvernement|parlement|ministre|assemblee|senat|macron|president de la republique|conseil des ministres/.test(t)) return "Politique";
+  if (/retraites|loi|gouvernement|parlement|ministre|assemblee|senat|macron/.test(t)) return "Politique";
   if (/\bue\b|union europeenne|europe|bruxelles|strasbourg/.test(t)) return "International";
   if (/ukraine|russie|israel|palestin|usa|etats-unis|washington|chine|onu|otan|trump|poutine|zelensky|vance/.test(t)) return "International";
   if (/\bia\b|intelligence artificielle|tech|numerique|apple|google|iphone|cyber|donnees/.test(t)) return "Tech";
-  if (/spatial|fusée|ariane|nasa|cnes|astronaute|satellite|planete|mars|climat|biodiversite|vaccin|virus|cancer|genetiqu/.test(t)) return "Science";
+  if (/spatial|fusee|ariane|nasa|cnes|astronaute|satellite|planete|mars|climat|biodiversite|vaccin|virus|cancer|genetiqu/.test(t)) return "Science";
   if (/histoire|archeo|gaulois|siecle|musee|napoleon|empire|medieval/.test(t)) return "Histoire";
-  if (/foot|match|champions|ligue|psg\b|om\b|equipe de france|tour de france|jeux olympiques|tennis|rugby/.test(t)) return "Sport";
+  if (/foot|match|champions|ligue|psg|equipe de france|tour de france|jeux olympiques|tennis|rugby/.test(t)) return "Sport";
   return "Général";
 }
 
