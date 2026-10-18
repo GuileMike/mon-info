@@ -123,7 +123,7 @@ function similarite(a: Map<string, number>, b: Map<string, number>): number {
   return (na && nb) ? num / Math.sqrt(na * nb) : 0;
 }
 
-const SEUIL_SUJET = 0.35;   // à ajuster : 0.3 = regroupe plus, 0.45 = plus strict
+const SEUIL_SUJET = 0.32;   // à ajuster : 0.3 = regroupe plus, 0.45 = plus strict
 
 interface Sujet {
   id: string;
