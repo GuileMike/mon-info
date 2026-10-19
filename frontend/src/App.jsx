@@ -36,15 +36,15 @@ const COULEURS = {
 // Ordre d'affichage des onglets de tri
 const CATEGORIES = [
   "Tous",
+  "Actualité",
   "Politique",
   "International",
   "Société",
   "Tech",
   "Science",
-  "Histoire",
   "Sport",
-  "Général",
 ];
+
 
 export default function App() {
   const [sujets, setSujets] = useState(null);
