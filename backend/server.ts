@@ -155,13 +155,6 @@ function classifier(titre: string): string {
   if (/election|presidentielle|legislative|municipale|candidat|campagne|sondage|vote|urne|congres|macron|melenchon|bardella|le pen|lucy carles|gouvernement|parlement|assemblee|senat|ministre|ministere|prefet|retraites|\bloi\b|decrete/.test(t)) return "Politique";
   // 6. Par défaut : Société (sujets généraux, people, art, cinéma…)
   return "Société";
-    // Sujet "chaud" = gros titre : beaucoup de médias, ou mention direct/urgent
-  for (const s of sujets) {
-    const chaud =
-      s.articles.length >= 5 ||
-      /en direct|urgent|breaking/i.test(s.titre);
-    if (chaud) s.categorie = "Actualité";
-  }
 }
 
 function regrouper(articles: Article[]): Sujet[] {
@@ -197,7 +190,13 @@ function regrouper(articles: Article[]): Sujet[] {
     const biais = new Set(s.articles.map(a => MEDIAS.find(m => m.id === a.mediaId)?.biais));
     s.desaccord = (biais.has("gauche") && (biais.has("droite") || biais.has("centre-droite")));
   }
-
+  // Sujet "chaud" = gros titre : beaucoup de médias, ou mention direct/urgent
+  for (const s of sujets) {
+    const chaud =
+      s.articles.length >= 4 ||
+      /en direct|urgent|breaking/i.test(s.titre);
+    if (chaud) s.categorie = "Actualité";
+  }
   // Tri : sujets les plus couverts d'abord
   return sujets.sort((a, b) => b.articles.length - a.articles.length);
 }
