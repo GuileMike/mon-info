@@ -133,28 +133,35 @@ interface Sujet {
   desaccord: boolean;        // médias de biais opposés présents ?
 }
 
+// ------------------------------------------------------------
+// CLASSIFICATION — ordre de priorité :
+// Actualité (gérée au niveau sujet) > Science > Tech > Sport
+// > International > Politique > Société (par défaut)
+// ------------------------------------------------------------
 function classifier(titre: string): string {
   const t = titre
     .toLowerCase()
     .normalize("NFD").replace(/[\u0300-\u036f]/g, "");
 
-  // 1. Société : manifestations et faits divers français (mots très spécifiques)
-  if (/manifest|pillage|emeute|interpellat|crs|gaz lacrymogene|greve|rassemblement|violence|saccage/.test(t)) return "Société";
-  if (/canicule|tempete|inondation|pauvrete|ecole|logement|hopital|pension|retraite|prefecture|maire/.test(t)) return "Société";
-  // 2. Sport : avant International (sinon "Europe"/"Strasbourg" capturent)
+  // 1. Science
+  if (/spatial|fusee|ariane|nasa|cnes|astronaute|satellite|planete|\bmars\b|climat|biodiversite|vaccin|virus|cancer|genetiqu|peste|\bihu\b|medecin|patient|sante|recherche|histoire|archeo|musee|napoleon/.test(t)) return "Science";
+  // 2. Tech
+  if (/\bia\b|intelligence artificielle|\bmusk\b|starlink|spacex|tech|numerique|iphone|apple|google|cyber|donnees|telecom|jeux video/.test(t)) return "Tech";
+  // 3. Sport
   if (/foot|tennis|rugby|ligue 1|ligue des champions|\bpsg\b|\bom\b|equipe de france|championnat|match|tour de france|jeux olympiques|medaille/.test(t)) return "Sport";
-  // 3. Tech : avant International (Starlink/Musk captés par "états-unis")
-  if (/\bia\b|intelligence artificielle|\bmusk\b|starlink|spacex|tech|numerique|iphone|apple|google|cyber|donnees|telecom/.test(t)) return "Tech";
-  // 4. Science
-  if (/spatial|fusee|ariane|nasa|cnes|astronaute|satellite|planete|\bmars\b|climat|biodiversite|vaccin|virus|cancer|genetiqu|peste|\bihu\b|medecin|patient/.test(t)) return "Science";
-  // 5. Histoire
-  if (/histoire|archeo|gaulois|siecle|musee|napoleon|empire|medieval/.test(t)) return "Histoire";
-  // 6. Politique française
-  if (/retraites|loi\b|gouvernement|parlement|ministre|assemblee|senat|macron|melenchon|bardella|prefet/.test(t)) return "Politique";
-  // 7. International : EN DERNIER, avec mots plus précis
-  if (/ukraine|russie|israel|palestin|syrie|iran|chine|japon|afrique|onu|otan|trump|poutine|zelensky|vance|washington|kosovo|taiwan/.test(t)) return "International";
-  if (/\bue\b|union europeenne|europe\b|bruxelles/.test(t)) return "International";
-  return "Général";
+  // 4. International (tout ce qui est hors France)
+  if (/ukraine|russie|israel|palestin|syrie|iran|chine|japon|coree|afrique|americ|etats-unis|usa|trump|poutine|zelensky|vance|washington|kosovo|taiwan|gaza|liban|merkel|europeenne|\bue\b|bruxelles|colombie|greenland|britannique/.test(t)) return "International";
+  // 5. Politique française (vie politique, élections)
+  if (/election|presidentielle|legislative|municipale|candidat|campagne|sondage|vote|urne|congres|macron|melenchon|bardella|le pen|lucy carles|gouvernement|parlement|assemblee|senat|ministre|ministere|prefet|retraites|\bloi\b|decrete/.test(t)) return "Politique";
+  // 6. Par défaut : Société (sujets généraux, people, art, cinéma…)
+  return "Société";
+    // Sujet "chaud" = gros titre : beaucoup de médias, ou mention direct/urgent
+  for (const s of sujets) {
+    const chaud =
+      s.articles.length >= 5 ||
+      /en direct|urgent|breaking/i.test(s.titre);
+    if (chaud) s.categorie = "Actualité";
+  }
 }
 
 function regrouper(articles: Article[]): Sujet[] {
