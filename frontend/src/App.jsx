@@ -11,7 +11,8 @@
 //      en arrière-plan sans bloquer l'interface
 //   5. Bouton "Rafraîchir" dans l'en-tête
 //   6. mediaById mémoïsé (useMemo)
-//   7. Images : fallback coloré par journal si visuel absent/cassé
+//   7. Images : si le visuel est absent ou cassé, pas d'image du tout
+//      (l'image cassée est simplement retirée via onError)
 //   8. Accessibilité : role="tablist"/"tab", aria-selected,
 //      aria-pressed sur les toggles, aria-label sur le rafraîchissement
 // ============================================================
@@ -40,6 +41,8 @@ const COULEURS = {
   historia: "#9a3412",
   blast: "#dc2626",
   acrimed: "#b45309",
+  courrierinter: "#0f766e",
+  lequipe: "#ea580c",
 };
 
 // Ordre d'affichage des onglets de tri
@@ -238,15 +241,6 @@ export default function App() {
       display: "block",
       background: "#e2e8f0",
     },
-    // v3 : bloc coloré de remplacement quand pas d'image (ou image cassée)
-    imageFallback: {
-      width: "100%",
-      height: 160,
-      display: "flex",
-      alignItems: "center",
-      justifyContent: "center",
-      fontSize: 28,
-    },
     contenu: { padding: 14 },
     badgeDesaccord: {
       display: "inline-block",
@@ -428,9 +422,6 @@ export default function App() {
 
             const afficherImage =
               premier && premier.visuel && !imagesKO[sujet.id];
-            // v3 : couleur de fallback = couleur du 1er média du sujet
-            const couleurFallback =
-              COULEURS[premier?.mediaId] || "#334155";
 
             return (
               <div key={sujet.id} style={s.carte}>
@@ -441,24 +432,16 @@ export default function App() {
                   ))}
                 </div>
 
-                {/* v3 : image avec fallback coloré si absente ou cassée */}
-                {afficherImage ? (
+                {/* v3 : image seulement si présente ; si elle casse
+                    (onError), on la retire simplement — pas de substitut */}
+                {premier && premier.visuel && !imagesKO[sujet.id] ? (
                   <img
                     src={premier.visuel}
                     alt=""
                     style={s.image}
                     onError={() => marquerImageKO(sujet.id)}
                   />
-                ) : (
-                  <div
-                    style={{
-                      ...s.imageFallback,
-                      background: couleurFallback + "22", // version pastel
-                    }}
-                  >
-                    <span style={{ opacity: 0.5 }}>🗞️</span>
-                  </div>
-                )}
+                ) : null}
 
                 <div style={s.contenu}>
                   <div
