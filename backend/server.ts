@@ -47,19 +47,21 @@ interface Media {
 const MEDIAS: Media[] = [
   { id: "lemonde", nom: "Le Monde", biais: "centre-gauche", rss: "https://www.lemonde.fr/rss/une.xml", actif: true },
   { id: "figaro", nom: "Le Figaro", biais: "centre-droite", rss: "https://www.lefigaro.fr/rss/figaro_actualites.xml", actif: true },
-  { id: "libe", nom: "Libération", biais: "gauche", rss: "https://www.liberation.fr/rss/latest", actif: true },
   { id: "humanite", nom: "L'Humanité", biais: "gauche", rss: "https://www.humanite.fr/rss", actif: true },
-  { id: "leparisien", nom: "Le Parisien", biais: "centre", rss: "https://www.leparisien.fr/actu/rss.xml", actif: true },
+  { id: "leparisien", nom: "Le Parisien", biais: "centre", rss: "https://feeds.leparisien.fr/leparisien/rss", actif: true },
   { id: "ouestfrance", nom: "Ouest-France", biais: "centre", rss: "https://www.ouest-france.fr/rss-en-continu.xml", actif: true },
   { id: "challenges", nom: "Challenges", biais: "centre-droite", rss: "https://www.challenges.fr/rss.xml", actif: true },
-  { id: "mediapart", nom: "Mediapart", biais: "gauche", rss: "https://www.mediapart.fr/articles/rss", actif: true },
+  { id: "mediapart", nom: "Mediapart", biais: "gauche", rss: "https://www.mediapart.fr/articles/feed", actif: true },
   { id: "bfmtv", nom: "BFMTV", biais: "centre", rss: "https://www.bfmtv.com/rss/news-24-7/", actif: true },
-  { id: "cnews", nom: "CNEWS", biais: "droite", rss: "https://www.cnews.fr/rss", actif: true },
+  { id: "cnews", nom: "CNEWS", biais: "droite", rss: "https://www.cnews.fr/rss.xml", actif: true },
   { id: "franceinfo", nom: "franceinfo", biais: "centre", rss: "https://www.francetvinfo.fr/titres.rss", actif: true },
   { id: "sciencesavenir", nom: "Sciences et Avenir", biais: "centre", rss: "https://www.sciencesetavenir.fr/rss.xml", actif: true },
-  { id: "historia", nom: "Historia", biais: "centre", rss: "https://www.historia.fr/rss", actif: true },
-  { id: "blast", nom: "Blast", biais: "gauche", rss: "https://www.blast-info.fr/rss", actif: true },
-  { id: "acrimed", nom: "Acrimed", biais: "gauche", rss: "https://acrimed.org/spip.php?page=backend", actif: true },
+  { id: "blast", nom: "Blast", biais: "gauche", rss: "https://api.blast-info.fr/rss.xml", actif: true },
+  { id: "courrierinter", nom: "Courrier International", biais: "centre-gauche", rss: "https://www.courrierinternational.com/feed/all/rss.xml", actif: true },
+  { id: "lequipe", nom: "L'Équipe", biais: "centre", rss: "https://dwh.lequipe.fr/api/edito/rss?path=/", actif: true },
+  // v3 : libe, historia et acrimed retirés — Libération a fermé ses flux
+  // RSS publics (2023), Historia n'expose plus de flux accessible, et
+  // Acrimed bloque les connexions depuis les serveurs (IP datacenter).
   // → ajoutez ici vos sources : une ligne = un média
 ];
 
