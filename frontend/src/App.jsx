@@ -1,18 +1,27 @@
 // ============================================================
-// Mon Info — Frontend React connecté au backend Render (v2)
+// Mon Info — Frontend React connecté au backend (v3)
 // Fichier : frontend/src/App.jsx
 //
-// Nouveautés v2 :
-//   - Onglets de tri par catégorie (Tous, Politique, International...)
-//   - Onglet Sources (activer/désactiver chaque média, bouton ON/OFF)
-//   - Couleurs par journal (pastille colorée sur chaque article)
-//
-// ⬇️ REMPLACEZ la constante API par l'URL de votre service Render
+// Nouveautés v3 :
+//   1. URL d'API configurable : variable d'environnement VITE_API_URL
+//      (fallback vers Render) — plus besoin d'éditer le code
+//   2. Compteur "Fil" = sujets de l'onglet actif (et non le total)
+//   3. Dates affichées : fraîcheur relative du sujet ("il y a 12 min")
+//   4. Toggles Sources optimistes : mise à jour instantanée, recalcul
+//      en arrière-plan sans bloquer l'interface
+//   5. Bouton "Rafraîchir" dans l'en-tête
+//   6. mediaById mémoïsé (useMemo)
+//   7. Images : fallback coloré par journal si visuel absent/cassé
+//   8. Accessibilité : role="tablist"/"tab", aria-selected,
+//      aria-pressed sur les toggles, aria-label sur le rafraîchissement
 // ============================================================
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo, useCallback } from "react";
 
-const API = "https://mon-info-1.onrender.com";
+// ⬇️ En local : créez un fichier frontend/.env.local avec la ligne
+//      VITE_API_URL=http://localhost:3000
+// Sans variable d'environnement, on retombe sur le backend Render.
+const API = import.meta.env.VITE_API_URL || "https://mon-info-1.onrender.com";
 
 // Couleurs des journaux (id → couleur). Ajoutez vos médias ici.
 const COULEURS = {
@@ -45,17 +54,36 @@ const CATEGORIES = [
   "Sport",
 ];
 
+// ------------------------------------------------------------
+// Fraîcheur relative : "à l'instant", "il y a 12 min", "il y a 3 h"…
+// ------------------------------------------------------------
+function fraicheur(dateIso) {
+  const diff = Date.now() - new Date(dateIso).getTime();
+  const min = Math.floor(diff / 60000);
+  if (min < 1) return "à l'instant";
+  if (min < 60) return `il y a ${min} min`;
+  const h = Math.floor(min / 60);
+  if (h < 24) return `il y a ${h} h`;
+  const j = Math.floor(h / 24);
+  return `il y a ${j} j`;
+}
 
 export default function App() {
   const [sujets, setSujets] = useState(null);
   const [medias, setMedias] = useState([]);
   const [chargement, setChargement] = useState(true);
+  const [majEnCours, setMajEnCours] = useState(false); // rafraîchissement silencieux
   const [erreur, setErreur] = useState(null);
   const [onglet, setOnglet] = useState("Tous");
   const [vueSources, setVueSources] = useState(false);
 
-  const charger = async () => {
-    setChargement(true);
+  // v3 : charger() accepte un mode "silencieux" qui ne bloque pas l'UI
+  const charger = useCallback(async (silencieux = false) => {
+    if (silencieux) {
+      setMajEnCours(true);
+    } else {
+      setChargement(true);
+    }
     setErreur(null);
     try {
       const [rS, rM] = await Promise.all([
@@ -69,19 +97,44 @@ export default function App() {
       setErreur(e.message);
     } finally {
       setChargement(false);
+      setMajEnCours(false);
     }
-  };
+  }, []);
 
-  useEffect(() => { charger(); }, []);
+  useEffect(() => { charger(); }, [charger]);
 
+  // v3 : bascule optimiste — l'UI réagit instantanément, le recalcul
+  // du fil se fait ensuite en arrière-plan (silencieux)
   const toggleMedia = async (id) => {
-    await fetch(API + "/api/medias/" + id + "/toggle", {
-      method: "POST",
-    });
-    await charger();
+    setMedias((ms) =>
+      ms.map((m) => (m.id === id ? { ...m, actif: !m.actif } : m))
+    );
+    try {
+      await fetch(API + "/api/medias/" + id + "/toggle", { method: "POST" });
+    } catch {
+      // En cas d'échec, on resynchronise avec le serveur
+      charger(true);
+      return;
+    }
+    charger(true);
   };
 
-  const mediaById = Object.fromEntries(medias.map((m) => [m.id, m]));
+  // v3 : mémoïsé — recalculé seulement quand medias change
+  const mediaById = useMemo(
+    () => Object.fromEntries(medias.map((m) => [m.id, m])),
+    [medias]
+  );
+
+  // v3 : sujets filtrés calculés tôt pour alimenter le compteur du Fil
+  const sujetsFiltres = useMemo(() => {
+    if (!sujets) return [];
+    return onglet === "Tous" ? sujets : sujets.filter((x) => x.categorie === onglet);
+  }, [sujets, onglet]);
+
+  // v3 : état d'image par sujet pour le fallback (image cassée/absente)
+  const [imagesKO, setImagesKO] = useState({});
+  const marquerImageKO = (id) =>
+    setImagesKO((etat) => (etat[id] ? etat : { ...etat, [id]: true }));
 
   const s = {
     app: {
@@ -131,6 +184,15 @@ export default function App() {
       fontSize: 13,
       cursor: "pointer",
     },
+    boutonRafraichir: {
+      background: "white",
+      color: "#0f172a",
+      border: "1px solid #cbd5e1",
+      borderRadius: 8,
+      padding: "8px 10px",
+      fontSize: 13,
+      cursor: "pointer",
+    },
     barreOnglets: {
       position: "sticky",
       top: 52,
@@ -176,6 +238,15 @@ export default function App() {
       display: "block",
       background: "#e2e8f0",
     },
+    // v3 : bloc coloré de remplacement quand pas d'image (ou image cassée)
+    imageFallback: {
+      width: "100%",
+      height: 160,
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+      fontSize: 28,
+    },
     contenu: { padding: 14 },
     badgeDesaccord: {
       display: "inline-block",
@@ -188,14 +259,6 @@ export default function App() {
     barreCouleurs: {
       display: "flex",
       height: 6,
-    },
-    pastille: {
-      display: "inline-block",
-      color: "white",
-      borderRadius: 999,
-      fontSize: 10,
-      padding: "2px 8px",
-      margin: 2,
     },
     ligneArticle: {
       display: "flex",
@@ -221,6 +284,14 @@ export default function App() {
       boxShadow: "0 1px 2px rgba(0,0,0,.06)",
     },
     texteGris: { color: "#94a3b8" },
+    // v3 : petit indicateur "mise à jour…" pendant le recalcul silencieux
+    bandeauMaj: {
+      textAlign: "center",
+      fontSize: 11,
+      color: "#64748b",
+      padding: "6px 0",
+      background: "#f1f5f9",
+    },
   };
 
   if (chargement) {
@@ -238,45 +309,55 @@ export default function App() {
           Impossible de joindre le backend
         </p>
         <p style={{ color: "#64748b", fontSize: 14 }}>{erreur}</p>
-        <button style={{ ...s.bouton, marginTop: 12 }} onClick={charger}>
+        <button style={{ ...s.bouton, marginTop: 12 }} onClick={() => charger()}>
           Réessayer
         </button>
       </div>
     );
   }
 
-  const sujetsFiltres =
-    onglet === "Tous"
-      ? sujets
-      : sujets.filter((x) => x.categorie === onglet);
-
   return (
     <div style={s.app}>
       {/* EN-TÊTE */}
       <div style={s.header}>
         <h1 style={s.titre}>🇫🇷 Mon Info</h1>
-        <div style={{ display: "flex", gap: 8 }}>
+        <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+          {/* v3 : bouton Rafraîchir, accessible */}
+          <button
+            style={s.boutonRafraichir}
+            onClick={() => charger(true)}
+            aria-label="Rafraîchir le fil"
+            title="Rafraîchir"
+          >
+            {majEnCours ? "⏳" : "⟳"}
+          </button>
           <button
             style={vueSources ? s.boutonGris : s.bouton}
             onClick={() => setVueSources(true)}
+            aria-pressed={vueSources}
           >
             Sources
           </button>
           <button
             style={vueSources ? s.bouton : s.boutonGris}
             onClick={() => setVueSources(false)}
+            aria-pressed={!vueSources}
           >
-            Fil ({sujets.length})
+            {/* v3 : compteur = sujets de l'onglet actif */}
+            Fil ({sujetsFiltres.length})
           </button>
         </div>
       </div>
+
+      {/* v3 : bandeau discret pendant un recalcul en arrière-plan */}
+      {majEnCours ? <div style={s.bandeauMaj}>Mise à jour du fil…</div> : null}
 
       {/* VUE SOURCES */}
       {vueSources ? (
         <div style={{ paddingTop: 12 }}>
           <p style={{ ...s.texteGris, fontSize: 12, margin: "0 16px 8px" }}>
-            Activez ou désactivez vos sources. Le fil se recalcule
-            automatiquement (comptez ~1 min).
+            Activez ou désactivez vos sources. Le fil se met à jour en
+            arrière-plan dès que le backend a recalculé.
           </p>
           {medias.map((m) => (
             <div
@@ -302,9 +383,12 @@ export default function App() {
                   </div>
                 </div>
               </div>
+              {/* v3 : aria-pressed pour les lecteurs d'écran */}
               <button
                 style={m.actif ? s.boutonVert : s.boutonGris}
                 onClick={() => toggleMedia(m.id)}
+                aria-pressed={m.actif}
+                aria-label={`${m.actif ? "Désactiver" : "Activer"} ${m.nom}`}
               >
                 {m.actif ? "ON" : "OFF"}
               </button>
@@ -313,11 +397,13 @@ export default function App() {
         </div>
       ) : (
         <>
-          {/* ONGLETS DE TRI */}
-          <div style={s.barreOnglets}>
+          {/* ONGLETS DE TRI — v3 : sémantique role="tablist"/"tab" */}
+          <div style={s.barreOnglets} role="tablist" aria-label="Catégories">
             {CATEGORIES.map((c) => (
               <button
                 key={c}
+                role="tab"
+                aria-selected={onglet === c}
                 style={onglet === c ? s.ongletActif : s.onglet}
                 onClick={() => setOnglet(c)}
               >
@@ -333,6 +419,19 @@ export default function App() {
               .map((a) => COULEURS[a.mediaId] || "#334155")
               .filter((v, i, arr) => arr.indexOf(v) === i);
 
+            // v3 : fraîcheur = date de l'article le plus récent du sujet
+            const datePlusRecente = sujet.articles.reduce(
+              (max, a) => (new Date(a.date) > max ? new Date(a.date) : max),
+              new Date(0)
+            );
+            const fraiche = fraicheur(datePlusRecente.toISOString());
+
+            const afficherImage =
+              premier && premier.visuel && !imagesKO[sujet.id];
+            // v3 : couleur de fallback = couleur du 1er média du sujet
+            const couleurFallback =
+              COULEURS[premier?.mediaId] || "#334155";
+
             return (
               <div key={sujet.id} style={s.carte}>
                 {/* Barre de couleurs des médias du sujet */}
@@ -342,15 +441,40 @@ export default function App() {
                   ))}
                 </div>
 
-                {premier && premier.visuel ? (
-                  <img src={premier.visuel} alt="" style={s.image} />
-                ) : null}
+                {/* v3 : image avec fallback coloré si absente ou cassée */}
+                {afficherImage ? (
+                  <img
+                    src={premier.visuel}
+                    alt=""
+                    style={s.image}
+                    onError={() => marquerImageKO(sujet.id)}
+                  />
+                ) : (
+                  <div
+                    style={{
+                      ...s.imageFallback,
+                      background: couleurFallback + "22", // version pastel
+                    }}
+                  >
+                    <span style={{ opacity: 0.5 }}>🗞️</span>
+                  </div>
+                )}
 
                 <div style={s.contenu}>
                   <div
-                    style={{ fontSize: 11, color: "#64748b", marginBottom: 4 }}
+                    style={{
+                      fontSize: 11,
+                      color: "#64748b",
+                      marginBottom: 4,
+                      display: "flex",
+                      justifyContent: "space-between",
+                    }}
                   >
-                    {sujet.categorie}
+                    <span>{sujet.categorie}</span>
+                    {/* v3 : fraîcheur du sujet */}
+                    <span title={datePlusRecente.toLocaleString("fr-FR")}>
+                      {fraiche}
+                    </span>
                   </div>
                   <h2
                     style={{
@@ -384,8 +508,7 @@ export default function App() {
                   <div style={{ marginTop: 12 }}>
                     {sujet.articles.map((a) => {
                       const m = mediaById[a.mediaId];
-                      const couleur =
-                        COULEURS[a.mediaId] || "#334155";
+                      const couleur = COULEURS[a.mediaId] || "#334155";
                       return (
                         <div key={a.id} style={s.ligneArticle}>
                           <span style={{ ...s.dot, background: couleur }} />
